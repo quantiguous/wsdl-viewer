@@ -155,6 +155,8 @@
 
 <xsl:param name="wsdl-viewer.version">3.1.01</xsl:param>
 
+<xsl:param name="generation-dateTime"></xsl:param>
+
 
 
 <!--
@@ -164,6 +166,7 @@
 -->
 <xsl:param name="ENABLE-SERVICE-PARAGRAPH" select="true()"/>
 <xsl:param name="ENABLE-OPERATIONS-PARAGRAPH" select="true()"/>
+<xsl:param name="ENABLE-ENUMERATIONS-PARAGRAPH" select="false()"/>
 <xsl:param name="ENABLE-SRC-CODE-PARAGRAPH" select="false()"/>
 <xsl:param name="ENABLE-ABOUT-PARAGRAPH" select="true()"/>
 <xsl:param name="ENABLE-OPERATIONS-TYPE" select="true()"/>
@@ -541,6 +544,10 @@ html&gt;body #rightColumn {
     color: darkblue;
 }
 
+.enumerations_list {
+    color: darkblue;
+}
+
 strong, strong a {
 	color: darkblue;
 	font-weight: bold;
@@ -915,6 +922,9 @@ $(document).ready(function() {
     <br/>
 	  Original Author <a href="http://tomi.vanek.sk/">tomi vanek</a>, based on version <xsl:value-of select="$version"/> for download at <a href="http://tomi.vanek.sk/xml/wsdl-viewer.xsl">http://tomi.vanek.sk/xml/wsdl-viewer.xsl</a>.<br/>
     <br/>
+    <br/>
+    <br/>
+          Generated At: <xsl:value-of  select="$generation-dateTime"/>
   </div>
 </xsl:template>
 
@@ -1110,41 +1120,57 @@ $(document).ready(function() {
 
 	    <div class="label">Operations:</div>
 	    <div class="value">
-<br/>
-</div>
+        <br/>
+      </div>
 	    <div class="operations_list">
-<xsl:text>    </xsl:text>
+        <xsl:text>    </xsl:text>
 		    <ol style="line-height: 180%;">
 			    <xsl:apply-templates select="$consolidated-wsdl/ws:portType[@name = $port-type-name]/ws:operation" mode="service">
 				    <xsl:sort select="@name"/>
 			    </xsl:apply-templates>
 		    </ol>
 	    </div>
+
+      <br/>
+      <div class="label">Enumerations:</div>
+      <div class="value">
+        <br/>
+      </div>
+	    <div class="enumerations_list">
+        <xsl:text>    </xsl:text>
+		    <ol style="line-height: 180%;">
+		    </ol>
+	    </div>
+
     </div>
+
+
 </xsl:template>
+
 <xsl:template match="ws:operation|ws2:operation" mode="service">
 	<li>
-<big>
-<xsl:value-of select="@name"/>
-</big>
-<xsl:if test="$ENABLE-LINK">
-		<xsl:if test="$ENABLE-OPERATIONS-PARAGRAPH">
-<span class="padder"/>
-<a class="local" href="{concat('#', $OPERATIONS-PREFIX, generate-id(.))}">Detail</a>
-</xsl:if>
-<span class="padder"/>
-<xsl:call-template name="render.source-code-link"/>
-</xsl:if>
+    <big>
+      <xsl:value-of select="@name"/>
+    </big>
+    <xsl:if test="$ENABLE-LINK">
+		  <xsl:if test="$ENABLE-OPERATIONS-PARAGRAPH">
+        <span class="padder"/>
+        <a class="local" href="{concat('#', $OPERATIONS-PREFIX, generate-id(.))}">Detail</a>
+      </xsl:if>
+      <span class="padder"/>
+      <xsl:call-template name="render.source-code-link"/>
+    </xsl:if>
 	</li>
 </xsl:template>
+
 <xsl:template match="ws:binding|ws2:binding" mode="service">
 	<xsl:variable name="real-binding" select="*[local-name() = 'binding']|self::ws2:*"/>
 
 	<xsl:if test="$real-binding/@style">
 		<div class="label">Default style:</div>
 		<div class="value">
-<xsl:value-of select="$real-binding/@style"/>
-</div>
+      <xsl:value-of select="$real-binding/@style"/>
+    </div>
 	</xsl:if>
 
 
@@ -1155,8 +1181,8 @@ $(document).ready(function() {
 			<xsl:choose>
 				<xsl:when test="$protocol = 'http://schemas.xmlsoap.org/soap/http'">SOAP over HTTP</xsl:when>
 				<xsl:otherwise>
-<xsl:value-of select="$protocol"/>
-</xsl:otherwise>
+          <xsl:value-of select="$protocol"/>
+        </xsl:otherwise>
 			</xsl:choose>
 		</div>
 	</xsl:if>
@@ -1164,8 +1190,8 @@ $(document).ready(function() {
 	<xsl:if test="$real-binding/@verb">
 		<div class="label">Default method:</div>
 		<div class="value">
-<xsl:value-of select="$real-binding/@verb"/>
-</div>
+      <xsl:value-of select="$real-binding/@verb"/>
+    </div>
 	</xsl:if>
 </xsl:template>
 
@@ -1277,6 +1303,8 @@ $(document).ready(function() {
 </ol>
 </div>
 </xsl:template>
+
+<!-- this writes one operation at a time -->
 <xsl:template match="ws:operation" mode="operations">
 	<xsl:variable name="binding-info" select="$consolidated-wsdl/ws:binding[@type = current()/../@name or substring-after(@type, ':') = current()/../@name]/ws:operation[@name = current()/@name]"/>
 <li>
@@ -1339,6 +1367,7 @@ $(document).ready(function() {
 	</xsl:apply-templates>
 </li>
 </xsl:template>
+
 <xsl:template match="ws:input|ws:output|ws:fault" mode="operations.message">
 	<xsl:param name="binding-data"/>
 	<xsl:if test="$ENABLE-INOUTFAULT">
@@ -1371,6 +1400,7 @@ $(document).ready(function() {
 		</xsl:choose>
 	</xsl:if>
 </xsl:template>
+
 <xsl:template match="ws:message" mode="operations.message">
 	<xsl:param name="binding-data"/>
 	<div class="value">
@@ -1432,8 +1462,9 @@ $(document).ready(function() {
 					<xsl:with-param name="type-local-name" select="$type-name"/>
 				</xsl:call-template>
 
-				<xsl:variable name="part-type" select="$consolidated-xsd[@name = $type-name and not(xsd:simpleType)][1]"/>
-				<xsl:apply-templates select="$part-type" mode="operations.message.part"/>
+				  <xsl:variable name="part-type" select="$consolidated-xsd[@name = $type-name and not(xsd:simpleType)][1]"/> 
+
+        <xsl:apply-templates select="$part-type" mode="operations.message.part"/>
 
 			</xsl:when>
 			<xsl:otherwise>none</xsl:otherwise>
@@ -1620,8 +1651,10 @@ $(document).ready(function() {
 		</xsl:apply-templates>
 	</xsl:element>
 </xsl:template>
+
 <xsl:template match="xsd:element[parent::xsd:schema]" mode="operations.message.part">
 	<xsl:param name="anti.recursion"/>
+  
 	<xsl:variable name="recursion.label" select="concat('[', @name, ']')"/>
 	<xsl:variable name="recursion.test">
 		<xsl:call-template name="recursion.should.continue">
@@ -1629,14 +1662,14 @@ $(document).ready(function() {
 			<xsl:with-param name="recursion.label" select="$recursion.label"/>
 		</xsl:call-template>
 	</xsl:variable>
-
+  
 	<xsl:choose>
 		<xsl:when test="string-length($recursion.test) != 0">
 			<xsl:variable name="type-name">
-<xsl:call-template name="xsd.element-type"/>
-</xsl:variable>
+        <xsl:call-template name="xsd.element-type"/>
+      </xsl:variable>
 			<xsl:variable name="elem-type" select="$consolidated-xsd[generate-id() != generate-id(current()) and $type-name and @name=$type-name and contains(local-name(), 'Type')][1]"/>
-	
+  
 			<xsl:if test="$type-name != @name">
 				<xsl:apply-templates select="$elem-type" mode="operations.message.part">
 					<xsl:with-param name="anti.recursion" select="concat($anti.recursion, $recursion.label)"/>
@@ -1647,7 +1680,7 @@ $(document).ready(function() {
 						<xsl:with-param name="type-local-name" select="$type-name"/>
 					</xsl:call-template>
 				</xsl:if>
-		
+        
 				<xsl:apply-templates select="*" mode="operations.message.part">
 					<xsl:with-param name="anti.recursion" select="concat($anti.recursion, $recursion.label)"/>
 				</xsl:apply-templates>
@@ -1669,6 +1702,7 @@ $(document).ready(function() {
 	<xsl:variable name="recursion.label" select="concat('[', @name, ']')"/>
 -->
 	<li>
+    
 		<xsl:variable name="local-ref" select="concat(@name, substring-after(@ref, ':'))"/>
 		<xsl:variable name="elem-name">
 			<xsl:choose>
@@ -1848,7 +1882,6 @@ $(document).ready(function() {
 						<xsl:with-param name="type-local-name" select="$type-local-name"/>
 					</xsl:call-template>
 				</xsl:if>
-
 				<xsl:choose>
 					<xsl:when test="$elem-type">
 						<xsl:apply-templates select="$elem-type" mode="render-type">
@@ -1856,7 +1889,6 @@ $(document).ready(function() {
 						</xsl:apply-templates>
 					</xsl:when>
 					<xsl:otherwise>
-
 						<xsl:apply-templates select="*" mode="render-type">
 							<xsl:with-param name="anti.recursion" select="concat($anti.recursion, $recursion.label)"/>
 						</xsl:apply-templates>
@@ -2451,6 +2483,9 @@ $(document).ready(function() {
 	<xsl:if test="$ENABLE-OPERATIONS-PARAGRAPH">
 		<xsl:call-template name="operations.render"/>
 	</xsl:if>
+  <xsl:if test="$ENABLE-ENUMERATIONS-PARAGRAPH">
+    <xsl:call-template name="enumerations.render"/>
+  </xsl:if>
 	<xsl:if test="$ENABLE-SRC-CODE-PARAGRAPH">
 		<xsl:call-template name="src.render"/>
 	</xsl:if>
@@ -2545,6 +2580,53 @@ $(document).ready(function() {
 	</ul>
 </div>
 </xsl:template>
+
+
+<!--
+==================================================================
+	Rendering: WSDL Enumerations - detail
+==================================================================
+-->
+
+<xsl:template name="enumerations.render">
+<div class="page">
+
+    <a class="target" name="page.enumerations">
+		<div id="enumerations">Enumerations:</div>
+    
+    <!-- elements with an anonymous type -->
+    <xsl:for-each select="$consolidated-xsd//xsd:element[descendant::*[local-name() = 'enumeration'] and not(@type)]">
+      <ul>
+        <xsl:value-of select='@name'/>
+      </ul>
+    </xsl:for-each>
+    
+    <!-- elements with a type that has an enumeration -->
+    <xsl:for-each select="$consolidated-xsd//xsd:simpleType[descendant::*[local-name() = 'enumeration']]">
+      <ul>
+        <xsl:value-of select='name(parent::.)'/>
+      </ul>
+    </xsl:for-each>
+    
+    <table>
+      <xsl:for-each select="$consolidated-xsd//*[local-name() = 'enumeration']">
+        <tr>
+          <td>
+            <xsl:value-of select="ancestor::*[local-name() = 'simpleType']/@name"/>
+            <xsl:value-of select="ancestor::*[local-name() = 'simpleType']/parent::xsd:element/@name"/>
+          </td>
+          <td><xsl:value-of select="@value"/></td>
+          <td><xsl:value-of select="descendant::*[local-name() = 'documentation']"/></td>
+        </tr>
+      </xsl:for-each>      
+    </table>
+	</a>
+	<ul>
+		
+	</ul>
+</div>
+</xsl:template>
+
 
 
 
